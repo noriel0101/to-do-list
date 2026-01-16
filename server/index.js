@@ -1,105 +1,85 @@
 import express from 'express';
+import { pool } from './db.js';
 
 const app = express();
 app.use(express.json());
 
 const PORT = 3000;
 
-const list = [
-  {
-    id: 1,
-    title: "Assignments",
-    status: "pending"
-  },
-  {
-    id: 2,
-    title: "Daily Chores",
-    status: "pending"
-  }
-]
 
-const items = [
-  {
-    id: 1,
-    list_id: 1,
-    description: "Programming",
-    status: "pending"
-  },
-  {
-    id: 2,
-    list_id: 1,
-    description: "Web Dev",
-    status: "pending"
-  },
-  {
-    id: 3,
-    list_id: 2,
-    description: "Wash Dish",
-    status: "pending"
-  },
-  {
-    id: 4,
-    list_id: 2,
-    description: "Clean the room",
-    status: "pending"
-  } 
-]
+app.get('/get-list', async ( req, res) => {
 
-app.get('/get-list', (req, res) => {
-  res.status(200).json({ success: true, list });
+  const list = await pool.query('SELECT * FROM list');
+
+  res.status(200).json({ success: true, list:list.rows });
 });
 
-app.post('/add-list', (req, res) => {
+app.post('/add-list', async(req, res) => {
   const { listTitle } = req.body;
 
-  list.push({
-    id: list.length + 1,
-    title: listTitle,
-    status: "pending"
-  })
+  await pool.query(`INSERT INTO list (title, status)VALUES ($1, $2)` , [listTitle, "pending"]);
 
+  res.status(200).json({  success: true,  message: "List Succesfully Added"});
   
-  res.status(200).json({  success: true, list , message: "Message Succesfully Added"});
 });
+  
 
-app.get('/edit-list', (req, res) => {
-  res.send('Edit list');
-});
+app.post('/edit-list/:id', async (req, res) => {
+  const { id } = req.params;
+  const { title, status } = req.body;
 
-app.get('/delete-list', (req, res) => {
-  res.send('Delete list');
-});
+  try {
+    const updated = await pool.query('UPDATE list SET title = $1, status = $2 WHERE id = $3 RETURNING *',[title, status, id]);
 
-
-app.get('/get-items/:id', (req, res) => {
-
-  const listId = req.params.id;
-
-  const filtered = items.filter(
-    item => item.list_id == listId
-  );
-
-  if(filtered.length === 0) {
-  res.status(200).json({
-    success: false,
-    message: "List not found"
-  });
-}
-
-  res.status(200).json({ success: true, items: filtered});
+    res.status(200).json({success: true,message: 'List successfully updated',data: updated.rows[0]});
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 
-app.get('/add-items', (req, res) => {
-  res.send('Add items');
+
+
+app.post('/delete-list/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await pool.query(
+      'DELETE FROM list WHERE id = $1', [id]);
+
+    res.status(200).json({ success: true, message: 'List successfully deleted' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
-app.get('/edit-items', (req, res) => {
-  res.send('Edit items');
+
+
+app.get('/get-items/:id', async (req, res) => {
+  const items = await pool.query('SELECT * FROM items');
+  res.status(200).json({success:true,items: items.rows});
 });
 
-app.get('/delete-items', (req, res) => {
-  res.send('Delete items');
+
+app.post('/add-items', async (req, res) => {
+  const {listId, desc} =req.body;
+
+  await pool.query('INSERT INTO items (list_id,description, status)VALUES($1, $2, $3)',[listId,desc, "pending"]);
+   res.status(200).json({success:true,message: "ITEMS Added Successfully"});
+   console.log(listId);
+});
+
+app.post('/edit-items', async (req, res) => {
+ const {id,desc} =req.body; 
+ await pool.query('UPDATE items SET description=$2 WHERE id=$1',[id, desc]);
+   res.status(200).json({success:true,message: "ITEMS Updated Successfully"});
+});
+ 
+app.post('/delete-items', async (req, res) => {
+ const {id} =req.body;
+ await pool.query('DELETE FROM items WHERE id=$1',[id]);
+   res.status(200).json({success:true,message: "ITEMS Deleted Successfully"});
+  
 });
 
 
