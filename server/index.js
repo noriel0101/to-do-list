@@ -1,10 +1,28 @@
 import express from 'express';
+import session from 'express-session';
 import { pool } from './db.js';
+import { hashPassword, comparePassword } from './components/hash.js';
 
 const app = express();
+const PORT = 3000;
+
 app.use(express.json());
 
-const PORT = 3000;
+
+app.use(
+  session({
+    name: 'user-session',
+    secret: 'superSecretKey', 
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: false,
+      maxAge: 1000 * 60 * 60, 
+    },
+  })
+);
+
 
 
 app.get('/get-list', async ( req, res) => {
@@ -83,7 +101,112 @@ app.post('/delete-items', async (req, res) => {
 });
 
 
+app.post('/register', async (req, res) => {
+  try {
+    const { username, password, confirm } = req.body;
+
+    if (!username || !password || !confirm) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required"
+      });
+    }
+
+    if (password !== confirm) {
+      return res.status(400).json({
+        success: false,
+        message: "Passwords do not match"
+      });
+    }
+
+    const existingUser = await pool.query(
+      'SELECT * FROM user_accounts WHERE username = $1',
+      [username]
+    );
+
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Username already exists"
+      });
+    }
+
+    const hashedPassword = await hashPassword(password);
+
+    await pool.query(
+      'INSERT INTO user_accounts (username, password) VALUES ($1, $2)',
+      [username, hashedPassword]
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Registered successfully"
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+
+// ---------------- LOGIN ----------------
+app.post('/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+      return res.status(400).json({ success: false, message: "All fields are required" });
+    }
+
+    const userResult = await pool.query('SELECT * FROM user_accounts WHERE username = $1', [username]);
+
+    if (userResult.rows.length === 0) {
+      return res.status(401).json({ success: false, message: "Invalid username or password" });
+    }
+
+    const user = userResult.rows[0];
+
+    const isMatch = await comparePassword(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: "Invalid username or password" });
+    }
+
+    req.session.user = {
+      id: user.id,
+      name: user.name
+    };
+
+    res.status(200).json({ success: true, message: "Login successful" });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+
+app.get('/get-session', (req, res) => {
+  if (req.session.user) {
+    return res.status(200).json({ session: true, user: req.session.user });
+  }
+
+  res.status(200).json({ session: false });
+});
+
+
+app.post('/logout', (req, res) => {
+  req.session.destroy(err => {
+    if (err) {
+      return res.status(500).json({ success: false, message: "Failed to logout" });
+    }
+
+    res.clearCookie('user-session');
+    res.status(200).json({ success: true, message: "Logged out successfully" });
+  });
+});
+
 
 app.listen(PORT, () => {
-    console.log('Server listening on port ${PORT}');
+  console.log(`Server listening on port ${PORT}`);
 });
