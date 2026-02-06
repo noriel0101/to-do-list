@@ -17,8 +17,10 @@ function App() {
     e.preventDefault();
 
     const endpoint = isRegistering ? '/register' : '/login';
+    
+    
     const payload = isRegistering 
-      ? { username, password, confirm: confirmPassword } 
+      ? { username, password, confirm: confirmPassword, name: username } 
       : { username, password };
 
     try {
@@ -35,12 +37,19 @@ function App() {
           setIsRegistering(false);
           setConfirmPassword('');
           setPassword('');
+          setUsername('');
         } else {
-  
-          navigate("/home");
+         
+          console.log("Login successful! Redirecting to /home...");
+          
+       
+          setTimeout(() => {
+            navigate("/home");
+          }, 100);
         }
       }
     } catch (error) {
+      console.error("Auth Error:", error);
       const message = error.response?.data?.message || "Something went wrong";
       alert("Error: " + message);
     }

@@ -44,7 +44,7 @@ function ListItem() {
                     </div>
                 )}
 
-                {/* ADD ITEM INPUT */}
+               
                 <form onSubmit={addItem} className="flex gap-2 mb-8">
                     <input className="flex-1 border-b-2 border-gray-200 outline-none focus:border-blue-500 p-2 text-lg" placeholder="Add a task..." value={newItem} onChange={e => setNewItem(e.target.value)} />
                     <button className="bg-blue-600 text-white px-6 py-2 rounded-full font-bold">Add</button>
