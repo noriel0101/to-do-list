@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "./api";
+import api from "./api"; // make sure this points to your api.js
 
 function App() {
   const [username, setUsername] = useState("");
@@ -23,14 +23,17 @@ function App() {
       const response = await api.post(endpoint, payload);
 
       if (response.data.success) {
+        // Show alert first
         alert(response.data.message);
 
         if (isRegistering) {
+          // Switch to login form after alert
           setIsRegistering(false);
           setConfirmPassword("");
           setPassword("");
           setUsername("");
         } else {
+          // Navigate to dashboard after login
           navigate("/home");
         }
       }
