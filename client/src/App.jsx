@@ -1,56 +1,43 @@
-"use client"
-
 import { useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import api from "./api";
 
 function App() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
-  
+
   const navigate = useNavigate();
-  const API_URL = import.meta.env.VITE_API_URL || "https://to-do-list-nut2.onrender.com";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const endpoint = isRegistering ? '/register' : '/login';
-    
-    
-    const payload = isRegistering 
-      ? { username, password, confirm: confirmPassword, name: username } 
+    const endpoint = isRegistering ? "/register" : "/login";
+
+    const payload = isRegistering
+      ? { username, password, confirm: confirmPassword }
       : { username, password };
 
     try {
-      const response = await axios.post(
-        `${API_URL}${endpoint}`,
-        payload,
-        { withCredentials: true }
-      );
+      const response = await api.post(endpoint, payload);
 
       if (response.data.success) {
         alert(response.data.message);
-        
+
         if (isRegistering) {
           setIsRegistering(false);
-          setConfirmPassword('');
-          setPassword('');
-          setUsername('');
+          setConfirmPassword("");
+          setPassword("");
+          setUsername("");
         } else {
-         
-          console.log("Login successful! Redirecting to /home...");
-          
-       
-          setTimeout(() => {
-            navigate("/home");
-          }, 100);
+          navigate("/home");
         }
       }
     } catch (error) {
       console.error("Auth Error:", error);
-      const message = error.response?.data?.message || "Something went wrong";
+      const message =
+        error.response?.data?.message || "Something went wrong";
       alert("Error: " + message);
     }
   };
@@ -58,17 +45,21 @@ function App() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
-        
         <h1 className="text-3xl font-bold text-center mb-2">
           {isRegistering ? "Create Account" : "Welcome Back"}
         </h1>
+
         <p className="text-center text-gray-500 mb-6">
-          {isRegistering ? "Register to get started" : "Please login to your account"}
+          {isRegistering
+            ? "Register to get started"
+            : "Please login to your account"}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Username</label>
+            <label className="block text-sm font-medium text-gray-700">
+              Username
+            </label>
             <input
               type="text"
               required
@@ -80,7 +71,9 @@ function App() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Password</label>
+            <label className="block text-sm font-medium text-gray-700">
+              Password
+            </label>
             <input
               type="password"
               required
@@ -93,7 +86,9 @@ function App() {
 
           {isRegistering && (
             <div>
-              <label className="block text-sm font-medium text-gray-700">Confirm Password</label>
+              <label className="block text-sm font-medium text-gray-700">
+                Confirm Password
+              </label>
               <input
                 type="password"
                 required
@@ -115,8 +110,8 @@ function App() {
 
         <p className="text-center text-sm text-gray-500 mt-6">
           {isRegistering ? "Already have an account?" : "No account yet?"}{" "}
-          <button 
-            type="button" 
+          <button
+            type="button"
             onClick={() => setIsRegistering(!isRegistering)}
             className="text-blue-600 font-medium hover:underline"
           >
