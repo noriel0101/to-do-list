@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "./api"; // make sure this points to your api.js
+import api from "./api";
 
 function App() {
   const [username, setUsername] = useState("");
@@ -12,9 +12,7 @@ function App() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     const endpoint = isRegistering ? "/register" : "/login";
-
     const payload = isRegistering
       ? { username, password, confirm: confirmPassword }
       : { username, password };
@@ -23,24 +21,22 @@ function App() {
       const response = await api.post(endpoint, payload);
 
       if (response.data.success) {
-        // Show alert first
         alert(response.data.message);
 
         if (isRegistering) {
-          // Switch to login form after alert
+          // After registering, automatically switch to login
           setIsRegistering(false);
           setConfirmPassword("");
           setPassword("");
           setUsername("");
         } else {
-          // Navigate to dashboard after login
+          // After login, go to dashboard
           navigate("/home");
         }
       }
     } catch (error) {
       console.error("Auth Error:", error);
-      const message =
-        error.response?.data?.message || "Something went wrong";
+      const message = error.response?.data?.message || "Something went wrong";
       alert("Error: " + message);
     }
   };
@@ -51,7 +47,6 @@ function App() {
         <h1 className="text-3xl font-bold text-center mb-2">
           {isRegistering ? "Create Account" : "Welcome Back"}
         </h1>
-
         <p className="text-center text-gray-500 mb-6">
           {isRegistering
             ? "Register to get started"

@@ -6,198 +6,65 @@ function Home() {
   const [lists, setLists] = useState([]);
   const [title, setTitle] = useState("");
   const [loading, setLoading] = useState(true);
-
   const navigate = useNavigate();
 
   const fetchLists = async () => {
     try {
       const res = await api.get("/get-list");
-
-      if (res.data.success) {
-        setLists(res.data.list);
-      }
+      if (res.data.success) setLists(res.data.list);
     } catch (err) {
-      console.error("Fetch Error:", err.response?.status, err.response?.data);
-
-      if (err.response?.status === 401) {
-        alert("Session expired. Please login again.");
-        navigate("/");
-      }
+      if (err.response?.status === 401) navigate("/");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchLists();
-  }, []);
+  useEffect(() => { fetchLists(); }, []);
 
   const addList = async (e) => {
     e.preventDefault();
-    if (!title.trim()) return;
-
-    try {
-      const res = await api.post("/add-list", { title });
-
-      if (res.data.success) {
-        setTitle("");
-        fetchLists();
-      }
-    } catch (err) {
-      console.error("Add List Error:", err);
-    }
+    if (!title) return;
+    await api.post("/add-list", { title });
+    setTitle("");
+    fetchLists();
   };
 
   const deleteList = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this list?")) return;
-
-    try {
-      const res = await api.delete(`/delete-list/${id}`);
-
-      if (res.data.success) {
-        fetchLists();
-      }
-    } catch (err) {
-      console.error("Delete Error:", err);
-    }
+    if (!window.confirm("Are you sure?")) return;
+    await api.delete(`/delete-list/${id}`);
+    fetchLists();
   };
 
-  const logout = async () => {
-    try {
-      await api.post("/logout");
-    } catch (err) {
-      console.error("Logout error", err);
-    } finally {
-      navigate("/");
-    }
-  };
-
-  if (loading) {
-    return <div style={{ padding: "20px" }}>Loading your lists...</div>;
-  }
+  if (loading) return <div>Loading...</div>;
 
   return (
-    <div
-      style={{
-        padding: "40px",
-        maxWidth: "800px",
-        margin: "0 auto",
-        fontFamily: "Arial"
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center"
-        }}
-      >
-        <h2>My To-Do Lists</h2>
-
-        <button
-          onClick={logout}
-          style={{ padding: "5px 10px", cursor: "pointer" }}
-        >
-          Logout
-        </button>
+    <div className="p-6 max-w-2xl mx-auto">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold">My To-Do Lists</h2>
+        <button onClick={() => navigate("/")} className="text-red-500">Logout</button>
       </div>
 
-      <hr />
-
-      {/* Add list */}
-      <form
-        onSubmit={addList}
-        style={{ marginBottom: "30px", marginTop: "20px" }}
-      >
+      <form onSubmit={addList} className="mb-6 flex gap-2">
         <input
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Enter List Title (e.g. Grocery, Work)"
-          style={{
-            padding: "10px",
-            width: "70%",
-            marginRight: "10px",
-            borderRadius: "5px",
-            border: "1px solid #ccc"
-          }}
+          onChange={e => setTitle(e.target.value)}
+          placeholder="New list title"
+          className="flex-1 p-2 border rounded"
           required
         />
-
-        <button
-          type="submit"
-          style={{
-            padding: "10px 20px",
-            backgroundColor: "#2563eb",
-            color: "white",
-            border: "none",
-            borderRadius: "5px",
-            cursor: "pointer"
-          }}
-        >
-          + Add List
-        </button>
+        <button className="bg-blue-600 text-white px-4 rounded">Add</button>
       </form>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-        {lists.length === 0 ? (
-          <p style={{ color: "gray" }}>No lists found. Create one above!</p>
-        ) : (
-          lists.map((l) => (
-            <div
-              key={l.id}
-              style={{
-                border: "1px solid #ddd",
-                borderRadius: "10px",
-                padding: "15px",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
-              }}
-            >
-              {/* clickable list only */}
-              <div
-                onClick={() => navigate(`/list/${l.id}`)}
-                style={{ cursor: "pointer", flex: 1 }}
-              >
-                <span
-                  style={{
-                    fontWeight: "bold",
-                    fontSize: "1.2rem",
-                    color: "#1e293b"
-                  }}
-                >
-                  {l.title}
-                </span>
-
-                <p
-                  style={{
-                    margin: "5px 0 0 0",
-                    color: "gray",
-                    fontSize: "0.9rem"
-                  }}
-                >
-                  {l.item_count || 0} items
-                </p>
-              </div>
-
-              <button
-                onClick={() => deleteList(l.id)}
-                style={{
-                  backgroundColor: "#fee2e2",
-                  color: "#dc2626",
-                  border: "none",
-                  padding: "8px 12px",
-                  borderRadius: "5px",
-                  cursor: "pointer"
-                }}
-              >
-                Delete
-              </button>
-            </div>
-          ))
-        )}
-      </div>
+      {lists.length === 0 ? (
+        <p>No lists found.</p>
+      ) : (
+        lists.map(l => (
+          <div key={l.id} className="flex justify-between p-3 border mb-2 rounded cursor-pointer" onClick={() => navigate(`/list/${l.id}`)}>
+            <span>{l.title} ({l.item_count || 0})</span>
+            <button onClick={(e) => { e.stopPropagation(); deleteList(l.id); }} className="text-red-500">Delete</button>
+          </div>
+        ))
+      )}
     </div>
   );
 }
