@@ -111,14 +111,20 @@ app.post("/add-list", auth, async (req, res) => {
   }
 });
 
-// EDIT LIST
+// UPDATE LIST TITLE
 app.put("/edit-list/:id", auth, async (req, res) => {
   const { id } = req.params;
   const { title } = req.body;
-  try {
-    await pool.query("UPDATE list SET title=$1 WHERE id=$2 AND user_id=$3", [title, id, req.session.userId]);
-    res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false }); }
+  await pool.query("UPDATE list SET title=$1 WHERE id=$2 AND user_id=$3", [title, id, req.session.userId]);
+  res.json({ success: true });
+});
+
+// UPDATE ITEM TITLE
+app.put("/edit-item/:id", auth, async (req, res) => {
+  const { id } = req.params;
+  const { title } = req.body;
+  await pool.query("UPDATE items SET title=$1 WHERE id=$2", [title, id]);
+  res.json({ success: true });
 });
 
 // DELETE LIST
