@@ -92,13 +92,23 @@ app.get("/get-list", auth, async (req, res) => {
   } catch (err) { res.status(500).json({ success: false }); }
 });
 
-// ADD LIST
+
+// ADD LIST (Updated for better logging)
 app.post("/add-list", auth, async (req, res) => {
   const { title } = req.body;
+  const userId = req.session.userId; // Siguraduhin na nakuha ang session ID
+
   try {
-    await pool.query("INSERT INTO list(title, user_id) VALUES($1, $2)", [title, req.session.userId]);
+    console.log(`Adding list for User ID: ${userId}`); // Log ito sa Render
+    await pool.query(
+      "INSERT INTO list(title, user_id) VALUES($1, $2)", 
+      [title, userId]
+    );
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false }); }
+  } catch (err) {
+    console.error("DATABASE ERROR:", err.message); // Lalabas ito sa Render logs
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // EDIT LIST
