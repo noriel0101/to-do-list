@@ -14,10 +14,8 @@ if (process.env.NODE_ENV === "development") {
   });
 } else {
   pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
+    connectionString: `postgres://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}/${process.env.DB_NAME}?sslmode=require&options=project=${process.env.ENDPOINT_ID}`,
   });
 }
 
 export { pool };
-

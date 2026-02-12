@@ -4,30 +4,47 @@ import cors from "cors";
 import bcrypt from "bcrypt";
 import { pool } from "./db.js";
 import dotenv from "dotenv";
+
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Importante para sa Render/Vercel cookies
+app.set("trust proxy", 1); 
+
 app.use(express.json());
 app.use(cors({
-  origin: process.env.FRONTEND_URL,
+  origin: process.env.FRONTEND_URL, 
   credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
 app.use(session({
   name: "user-session",
-  secret: process.env.SESSION_SECRET,
+  secret: process.env.SESSION_SECRET || "super-secret-key",
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false, httpOnly: true, maxAge: 24*60*60*1000 },
+  cookie: { 
+    secure: true, // true dahil HTTPS sa Render/Vercel
+    sameSite: 'none', // kailangan para sa cross-domain
+    httpOnly: true, 
+    maxAge: 24 * 60 * 60 * 1000 
+  },
 }));
 
-// REGISTER
+// AUTH MIDDLEWARE
+function auth(req, res, next) {
+  if (!req.session.userId) return res.status(401).json({ success: false, message: "Unauthorized" });
+  next();
+}
+
+// ROUTES
 app.post("/register", async (req, res) => {
   const { username, password, confirm } = req.body;
-  if (!username || !password || !confirm || password !== confirm) {
-    return res.status(400).json({ success: false, message: "Invalid input" });
+  if (!username || !password || password !== confirm) {
+    return res.status(400).json({ success: false, message: "Invalid input or passwords do not match" });
   }
   try {
     const hash = await bcrypt.hash(password, 10);
@@ -35,11 +52,10 @@ app.post("/register", async (req, res) => {
     res.json({ success: true, message: "Registered successfully" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: "Registration failed" });
+    res.status(500).json({ success: false, message: "Username might already exist" });
   }
 });
 
-// LOGIN
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
   try {
@@ -58,21 +74,20 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// LOGOUT
 app.post("/logout", (req, res) => {
-  req.session.destroy(() => res.json({ success: true }));
+  req.session.destroy(() => {
+    res.clearCookie("user-session", { sameSite: 'none', secure: true });
+    res.json({ success: true });
+  });
 });
-
-// MIDDLEWARE
-function auth(req, res, next) {
-  if (!req.session.userId) return res.status(401).json({ success: false, message: "Unauthorized" });
-  next();
-}
 
 // GET LISTS
 app.get("/get-list", auth, async (req, res) => {
   try {
-    const result = await pool.query("SELECT l.id, l.title, COUNT(i.id) AS item_count FROM list l LEFT JOIN items i ON l.id=i.list_id WHERE l.user_id=$1 GROUP BY l.id", [req.session.userId]);
+    const result = await pool.query(
+      "SELECT l.id, l.title, COUNT(i.id) AS item_count FROM list l LEFT JOIN items i ON l.id=i.list_id WHERE l.user_id=$1 GROUP BY l.id", 
+      [req.session.userId]
+    );
     res.json({ success: true, list: result.rows });
   } catch (err) { res.status(500).json({ success: false }); }
 });
@@ -100,8 +115,9 @@ app.put("/edit-list/:id", auth, async (req, res) => {
 app.delete("/delete-list/:id", auth, async (req, res) => {
   const { id } = req.params;
   try {
-    await pool.query("DELETE FROM list WHERE id=$1 AND user_id=$2", [id, req.session.userId]);
+    // Dahil sa database constraints, kailangan unahin ang items bago ang list
     await pool.query("DELETE FROM items WHERE list_id=$1", [id]);
+    await pool.query("DELETE FROM list WHERE id=$1 AND user_id=$2", [id, req.session.userId]);
     res.json({ success: true });
   } catch (err) { res.status(500).json({ success: false }); }
 });
@@ -110,8 +126,8 @@ app.delete("/delete-list/:id", auth, async (req, res) => {
 app.get("/get-items/:id", auth, async (req, res) => {
   const { id } = req.params;
   try {
-    const items = await pool.query("SELECT * FROM items WHERE list_id=$1", [id]);
-    const listInfo = await pool.query("SELECT * FROM list WHERE id=$1", [id]);
+    const items = await pool.query("SELECT * FROM items WHERE list_id=$1 ORDER BY id ASC", [id]);
+    const listInfo = await pool.query("SELECT * FROM list WHERE id=$1 AND user_id=$2", [id, req.session.userId]);
     res.json({ items: items.rows, listInfo: listInfo.rows[0] });
   } catch (err) { res.status(500).json({ success: false }); }
 });
@@ -121,16 +137,6 @@ app.post("/add-item", auth, async (req, res) => {
   const { listId, title } = req.body;
   try {
     await pool.query("INSERT INTO items(list_id, title) VALUES($1, $2)", [listId, title]);
-    res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false }); }
-});
-
-// EDIT ITEM
-app.put("/edit-item/:id", auth, async (req, res) => {
-  const { id } = req.params;
-  const { title } = req.body;
-  try {
-    await pool.query("UPDATE items SET title=$1 WHERE id=$2", [title, id]);
     res.json({ success: true });
   } catch (err) { res.status(500).json({ success: false }); }
 });
