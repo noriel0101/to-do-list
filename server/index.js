@@ -40,19 +40,19 @@ function auth(req, res, next) {
   next();
 }
 
-// ROUTES
 app.post("/register", async (req, res) => {
   const { username, password, confirm } = req.body;
   if (!username || !password || password !== confirm) {
-    return res.status(400).json({ success: false, message: "Invalid input or passwords do not match" });
+    return res.status(400).json({ success: false, message: "Invalid input" });
   }
   try {
     const hash = await bcrypt.hash(password, 10);
+    // Hayaan ang Postgres na gumawa ng UUID gamit ang default value
     await pool.query("INSERT INTO user_accounts(username, password) VALUES($1, $2)", [username, hash]);
     res.json({ success: true, message: "Registered successfully" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: "Username might already exist" });
+    res.status(500).json({ success: false, message: "Registration failed" });
   }
 });
 
