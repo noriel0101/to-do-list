@@ -5,122 +5,77 @@ import api from "./api";
 function Home() {
   const [lists, setLists] = useState([]);
   const [newList, setNewList] = useState("");
-  const [message, setMessage] = useState({ text: "", type: "" });
   const [editingId, setEditingId] = useState(null);
   const [editingTitle, setEditingTitle] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-
+  const [msg, setMsg] = useState("");
   const navigate = useNavigate();
 
-  const loadLists = async () => {
+  const load = async () => {
     try {
       const res = await api.get("/get-list");
-      if (res.data.success) setLists(res.data.list);
-    } catch (err) {
-      if (err.response?.status === 401) navigate("/");
-    }
+      setLists(res.data.list || []);
+    } catch { navigate("/"); }
   };
 
-  useEffect(() => { loadLists(); }, []);
+  useEffect(() => { load(); }, []);
 
-  const addList = async (e) => {
+  const add = async (e) => {
     e.preventDefault();
-    if (!newList.trim()) return;
-    setIsLoading(true);
-    try {
-      await api.post("/add-list", { title: newList });
-      setNewList("");
-      loadLists();
-      setMessage({ text: "Board Added Successfully!", type: "success" });
-      setTimeout(() => setMessage({ text: "", type: "" }), 3000);
-    } catch (err) {
-      setMessage({ text: "Error adding board", type: "error" });
-    } finally {
-      setIsLoading(false);
-    }
+    if(!newList) return;
+    await api.post("/add-list", { title: newList });
+    setNewList("");
+    setMsg("Added!");
+    load();
+    setTimeout(() => setMsg(""), 2000);
   };
 
-  const saveEdit = async (id) => {
-    if (!editingTitle.trim()) return setEditingId(null);
-    try {
-      // Naka-sync sa app.put("/edit-list/:id") ng server.js mo
-      await api.put(`/edit-list/${id}`, { title: editingTitle });
-      setEditingId(null);
-      loadLists();
-      setMessage({ text: "Board Renamed!", type: "success" });
-      setTimeout(() => setMessage({ text: "", type: "" }), 3000);
-    } catch {
-      setMessage({ text: "Failed to update", type: "error" });
-    }
-  };
-
-  const deleteList = async (id) => {
-    if (!window.confirm("Delete this board?")) return;
-    try {
-      await api.delete(`/delete-list/${id}`);
-      loadLists();
-      setMessage({ text: "Board Deleted!", type: "success" });
-      setTimeout(() => setMessage({ text: "", type: "" }), 3000);
-    } catch {
-      setMessage({ text: "Delete failed", type: "error" });
-    }
+  const save = async (id) => {
+    await api.put(`/edit-list/${id}`, { title: editingTitle });
+    setEditingId(null);
+    setMsg("Updated!");
+    load();
+    setTimeout(() => setMsg(""), 2000);
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center p-6 md:p-12 font-sans text-slate-900">
-      
-      {/* SUCCESS ALERT */}
-      {message.text && (
-        <div className="fixed top-10 z-[100] animate-bounce px-8 py-4 rounded-3xl shadow-2xl bg-emerald-500 text-white font-bold flex items-center gap-3">
-          <span>✓</span> {message.text}
-        </div>
-      )}
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-5">
+      {msg && <div className="fixed top-5 bg-blue-600 text-white px-6 py-2 rounded-full font-bold">{msg}</div>}
 
-      {/* HEADER */}
-      <div className="w-full max-w-2xl text-center mb-12">
-        <h1 className="text-5xl font-black text-indigo-600 tracking-tight">Focus Hub</h1>
-        <p className="text-slate-400 font-medium mt-2">Simplify your workflow today.</p>
-      </div>
-
-      {/* INPUT SECTION */}
-      <div className="w-full max-w-2xl bg-white p-8 md:p-10 rounded-[3rem] shadow-xl border border-white">
-        <form onSubmit={addList} className="flex gap-3 mb-12">
-          <input
+      <div className="bg-white p-8 rounded-[2rem] shadow-2xl w-full max-w-md">
+        <h1 className="text-3xl font-black text-center text-blue-600 mb-6">FOCUS HUB</h1>
+        
+        <form onSubmit={add} className="mb-6 flex flex-col gap-2">
+          <input 
+            className="border p-4 rounded-xl outline-none focus:border-blue-500 bg-gray-50"
+            placeholder="New Board Name"
             value={newList}
-            onChange={(e) => setNewList(e.target.value)}
-            className="flex-1 px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition-all"
-            placeholder="New Board Name..."
+            onChange={e => setNewList(e.target.value)}
           />
-          <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-bold transition-all shadow-lg active:scale-95">
-            {isLoading ? "..." : "Add"}
-          </button>
+          <button className="bg-blue-600 text-white p-4 rounded-xl font-bold">ADD BOARD</button>
         </form>
 
-        {/* LIST SECTION */}
-        <div className="space-y-4">
-          <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-2 mb-4">Boards</h2>
-          {lists.map((l) => (
-            <div key={l.id} className="group flex items-center justify-between p-6 bg-white border border-slate-100 rounded-[2rem] hover:border-indigo-200 hover:shadow-md transition-all">
-              <div className="flex-1">
-                {editingId === l.id ? (
-                  <input
-                    autoFocus
-                    value={editingTitle}
-                    onChange={(e) => setEditingTitle(e.target.value)}
-                    onBlur={() => saveEdit(l.id)}
-                    onKeyDown={(e) => e.key === "Enter" && saveEdit(l.id)}
-                    className="text-xl font-bold text-indigo-600 outline-none w-full bg-indigo-50 px-2 rounded-lg"
-                  />
-                ) : (
-                  <span onClick={() => navigate(`/list/${l.id}`)} className="text-xl font-extrabold text-slate-700 cursor-pointer hover:text-indigo-600">
-                    {l.title}
-                  </span>
-                )}
-              </div>
-              <div className="flex gap-4">
-                <button onClick={() => { setEditingId(l.id); setEditingTitle(l.title); }} className="text-slate-300 hover:text-indigo-600 font-bold">Edit</button>
-                <button onClick={() => deleteList(l.id)} className="text-slate-300 hover:text-rose-500 font-bold">Del</button>
-              </div>
+        <div className="space-y-3">
+          {lists.map(l => (
+            <div key={l.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-xl border">
+              {editingId === l.id ? (
+                <input 
+                  autoFocus
+                  className="border px-2 py-1 rounded w-full"
+                  value={editingTitle}
+                  onChange={e => setEditingTitle(e.target.value)}
+                  onBlur={() => save(l.id)}
+                  onKeyDown={e => e.key === 'Enter' && save(l.id)}
+                />
+              ) : (
+                <span onClick={() => navigate(`/list/${l.id}`)} className="font-bold cursor-pointer hover:text-blue-600">{l.title}</span>
+              )}
+              
+              <button 
+                onClick={() => { setEditingId(l.id); setEditingTitle(l.title); }}
+                className="text-xs bg-blue-100 text-blue-600 px-3 py-1 rounded-lg font-bold"
+              >
+                EDIT
+              </button>
             </div>
           ))}
         </div>
