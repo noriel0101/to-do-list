@@ -71,14 +71,14 @@ function ListItem() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center p-6 md:p-12 font-sans text-slate-900">
       
-      {/* FLOATING NOTIFICATION */}
+     
       {message.text && (
         <div className="fixed top-10 z-[100] animate-in slide-in-from-top-5 duration-300 px-8 py-4 rounded-[2rem] shadow-2xl bg-indigo-600 text-white font-bold flex items-center gap-3">
           <span>✨</span> {message.text}
         </div>
       )}
 
-      {/* HEADER */}
+      
       <div className="w-full max-w-2xl flex items-center justify-between mb-12">
         <button 
           onClick={() => navigate("/home")} 
@@ -92,7 +92,6 @@ function ListItem() {
         </div>
       </div>
 
-      {/* MAIN CARD */}
       <div className="w-full max-w-2xl bg-white p-8 md:p-10 rounded-[3rem] shadow-2xl border border-white">
         <form onSubmit={addItem} className="flex gap-3 mb-10">
           <input
