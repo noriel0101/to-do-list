@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "./api";
+import api from "../api";
 
 function Home() {
   const [lists, setLists] = useState([]);
