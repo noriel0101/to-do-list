@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "./api"; 
+import api from "../api"; 
 
 function App() {
   const [isRegistering, setIsRegistering] = useState(false);
@@ -18,14 +18,14 @@ function App() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Front-end validation
+   
     if (isRegistering && password !== confirmPassword) {
       return showToast("Passwords do not match!", "error");
     }
 
     const endpoint = isRegistering ? "/register" : "/login";
     
-    // MATCHING YOUR BACKEND: Isinasama ang 'confirm' field
+   
     const payload = isRegistering 
       ? { username, password, confirm: confirmPassword } 
       : { username, password };
