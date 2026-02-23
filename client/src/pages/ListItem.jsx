@@ -43,7 +43,7 @@ function ListItem() {
       if (res.data.success) {
         setNewItem(""); 
         await loadItems(); 
-        showToast("Added! ✨");
+        showToast("Added Successfully.");
       }
     } catch { 
       showToast("Error adding item", "error"); 
