@@ -15,7 +15,7 @@ app.set("trust proxy", 1);
 
 app.use(express.json());
 app.use(cors({
-  origin: process.env.FRONTEND_URL, 
+  origin: process.env.FRONTEND_URL || 'https://to-do-list-nu-eight-68.vercel.app', 
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"]
